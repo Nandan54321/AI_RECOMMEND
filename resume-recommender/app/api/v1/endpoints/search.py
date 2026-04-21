@@ -1,9 +1,22 @@
-# app/api/v1/endpoints/search.py
+
 from fastapi import APIRouter
+from pydantic import BaseModel
+
 from app.services.search_service import search_candidates
 
 router = APIRouter()
 
+
+# -----------------------------
+# Request Schema
+# -----------------------------
+class SearchRequest(BaseModel):
+    query: str
+
+
+# -----------------------------
+# Endpoint
+# -----------------------------
 @router.post("/")
-def search(query: str):
-    return search_candidates(query)
+def search(request: SearchRequest):
+    return search_candidates(request.query)
