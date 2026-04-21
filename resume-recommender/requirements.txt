@@ -1,0 +1,9 @@
+fastapi
+uvicorn
+pymongo
+python-dotenv
+faker
+sentence-transformers
+openai
+requests
+streamlit
