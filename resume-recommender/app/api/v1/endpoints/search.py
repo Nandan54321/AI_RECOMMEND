@@ -1,8 +1,8 @@
-
 from fastapi import APIRouter
 from pydantic import BaseModel
 
 from app.services.search_service import search_candidates
+from app.models.candidate import SearchResponse
 
 router = APIRouter()
 
@@ -17,6 +17,7 @@ class SearchRequest(BaseModel):
 # -----------------------------
 # Endpoint
 # -----------------------------
-@router.post("/")
+@router.post("/", response_model=SearchResponse)
 def search(request: SearchRequest):
-    return search_candidates(request.query)
+    results = search_candidates(request.query)
+    return {"results": results}
