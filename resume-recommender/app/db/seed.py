@@ -54,6 +54,7 @@ def generate_candidate():
 # -----------------------------
 # Seed Database
 # -----------------------------
+
 def run_seed(n: int = 120):
     candidates_col = get_collection("candidates")
 
@@ -62,7 +63,8 @@ def run_seed(n: int = 120):
     # -----------------------------
     existing_count = candidates_col.count_documents({})
 
-    if existing_count >= n:
+    # ✅ Prevent duplicate seeding
+    if existing_count > 0:
         print(f"⚡ Already seeded with {existing_count} candidates")
         return
 
@@ -78,6 +80,10 @@ def run_seed(n: int = 120):
     # -----------------------------
     texts = [c["resume_text"] for c in candidates]
     embeddings = get_embeddings(texts)
+
+    # ✅ Safety check
+    if len(embeddings) != len(candidates):
+        raise ValueError("Embedding generation failed: length mismatch")
 
     for i, c in enumerate(candidates):
         c["embedding"] = embeddings[i]
