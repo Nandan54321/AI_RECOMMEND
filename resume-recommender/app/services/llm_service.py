@@ -14,20 +14,29 @@ def build_batch_prompt(query, candidates):
     ])
 
     return f"""
+You are an expert AI recruiter.
+
 Job Requirement:
 {query}
 
 Candidates:
 {text}
 
-Return JSON list:
+IMPORTANT:
+- Return ONLY valid JSON
+- No explanation text outside JSON
+- No markdown
+- Every candidate MUST have non-empty reasoning
+- Reasoning must explain WHY the score is given
+
+Format:
 [
   {{
     "index": 1,
-    "match_score": 0-100,
-    "matched_skills": [],
-    "missing_skills": [],
-    "reasoning": ""
+    "match_score": 75,
+    "matched_skills": ["python"],
+    "missing_skills": ["docker"],
+    "reasoning": "Candidate has strong Python experience but lacks Docker which is required."
   }}
 ]
 """
@@ -48,18 +57,40 @@ def call_local(prompt):
     url = os.getenv("OLLAMA_URL")
     model = os.getenv("OLLAMA_MODEL")
 
-    res = requests.post(
-        f"{url}/api/generate",
-        json={"model": model, "prompt": prompt, "stream": False}
-    )
+    try:
+        res = requests.post(
+            f"{url}/api/generate",
+            json={"model": model, "prompt": prompt, "stream": False},
+            timeout=30
+        )
+        return res.json().get("response", "")
+    except Exception as e:
+        print("LLM ERROR:", e)
+        return ""
 
-    return res.json()["response"]
+import re
+
+def safe_json_parse(text):
+    try:
+        return json.loads(text)
+    except:
+        # extract JSON array using regex
+        match = re.search(r"\[.*\]", text, re.DOTALL)
+        if match:
+            try:
+                return json.loads(match.group())
+            except:
+                return []
+        return []
 
 def analyze_batch(query, candidates):
     prompt = build_batch_prompt(query, candidates)
 
     try:
         output = call_local(prompt) if PROVIDER == "local" else call_openai(prompt)
-        return json.loads(output)
+        print("LLM RAW OUTPUT:\n", output)
+        return safe_json_parse(output)
+
     except:
         return []
+    
