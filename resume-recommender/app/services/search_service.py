@@ -40,12 +40,15 @@ def search_candidates(query: str):
     # -----------------------------
     llm_results = analyze_batch(query, candidates)
 
-    # Convert list → dict for fast lookup
-    llm_map = {
-        item.get("index"): item
-        for item in llm_results
-        if isinstance(item, dict) and "index" in item
-    }
+    # Convert list → dict for fast lookup (SAFE VERSION)
+    llm_map = {}
+
+    for item in llm_results:
+        try:
+            idx = int(item.get("index"))  # 🔥 force int
+            llm_map[idx] = item
+        except:
+            continue
 
     # -----------------------------
     # Step 4: Hybrid Scoring
@@ -54,6 +57,11 @@ def search_candidates(query: str):
 
     for i, candidate in enumerate(candidates):
         llm_data = llm_map.get(i + 1, {})
+        
+        # 🔍 DEBUG (add here)
+        print("LLM MAP:", llm_map)
+        print("INDEX LOOKUP:", i + 1)
+        print("LLM DATA:", llm_data)
 
         # Rule-based score
         r_score = rule_score(query, candidate.get("skills", []))
@@ -71,6 +79,15 @@ def search_candidates(query: str):
             0.1 * r_score
         )
 
+        # reasoning = llm_data.get("reasoning") or "Good skill match"
+        if not llm_data.get("reasoning"):
+            if llm_data.get("matched_skills"):
+                reasoning = f"Matches skills: {', '.join(llm_data.get('matched_skills', []))}"
+            else:
+                reasoning = "Limited skill match for this role"
+        else:
+            reasoning = llm_data.get("reasoning")
+
         final_results.append({
             "name": candidate.get("name"),
             "title": candidate.get("title"),
@@ -80,7 +97,7 @@ def search_candidates(query: str):
             "rule_score": r_score,
             "matched_skills": llm_data.get("matched_skills", []),
             "missing_skills": llm_data.get("missing_skills", []),
-            "reasoning": llm_data.get("reasoning", "No reasoning available")
+            "reasoning": reasoning   # ✅ use fixed value
         })
 
     # -----------------------------
