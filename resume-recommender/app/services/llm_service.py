@@ -14,31 +14,66 @@ def build_batch_prompt(query, candidates):
     ])
 
     return f"""
-You are an expert AI recruiter.
+You are a senior technical recruiter and hiring expert.
 
-Job Requirement:
+Your task is to evaluate how well each candidate matches the job requirement.
+
+JOB REQUIREMENT:
 {query}
 
-Candidates:
+CANDIDATES:
 {text}
 
-IMPORTANT:
-- Return ONLY valid JSON
-- No explanation text outside JSON
-- No markdown
-- Every candidate MUST have non-empty reasoning
-- Reasoning must explain WHY the score is given
 
-Format:
+### SCORING RULES (STRICT):
+Evaluate each candidate using the following weighted criteria:
+
+1. Skills Match (40%)
+   - Compare required vs candidate skills
+   - Exact and related skills both count
+   - Infer skills from projects and experience even if not explicitly listed
+
+2. Experience Relevance (25%)
+   - Relevant domain/project experience
+   - Real-world usage of required skills
+
+3. Tools & Technologies (15%)
+   - Frameworks, libraries, platforms
+
+4. Education / Certifications (10%)
+   - Relevant degrees or certifications
+
+5. Overall Fit & Context (10%)
+   - Role alignment, clarity, and depth
+
+### SCORING INSTRUCTIONS:
+- Score MUST be between 0 and 100
+- Be consistent across candidates
+- High score (80+) ONLY if strong match across most categories
+- Low score (<50) if major requirements are missing
+- Ensure score distribution is meaningful (avoid giving all candidates similar scores)
+
+### OUTPUT FORMAT (STRICT JSON ONLY):
+Return ONLY a JSON array. No extra text.
+
 [
   {{
     "index": 1,
-    "match_score": 75,
-    "matched_skills": ["python"],
-    "missing_skills": ["docker"],
-    "reasoning": "Candidate has strong Python experience but lacks Docker which is required."
+    "match_score": 78,
+    "matched_skills": ["python", "fastapi"],
+    "missing_skills": ["docker", "kubernetes"],
+    "reasoning": "Candidate has strong backend experience using Python and FastAPI with relevant projects. However, lacks containerization tools like Docker and Kubernetes, which reduces overall match."
   }}
 ]
+
+### IMPORTANT RULES:
+- DO NOT return markdown
+- DO NOT add explanations outside JSON
+- Reasoning MUST be specific and non-empty
+- Mention BOTH strengths and gaps in reasoning
+- Keep reasoning concise (2–4 sentences)
+- Do NOT assume skills that are not supported by the resume
+- Follow ALL rules strictly. If output is not valid JSON or violates any rule, it will be rejected.
 """
 
 def call_openai(prompt):
